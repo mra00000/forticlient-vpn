@@ -15,6 +15,12 @@ expect -exact "Would you like to connect to this server? (Y/N)" {
   send -- "Y\n"
 }
 
+# In case of invalid certificate
+expect -exact "Enter Your Microsoft verification code" {
+  interact ++ return
+  send "\r"
+}
+
 # Expect tunnel to actually start
 expect {
   "STATUS::Tunnel running" {

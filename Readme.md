@@ -1,44 +1,44 @@
-# Forticlient for Docker
 
-Connect to a FortiNet VPNs through docker container. 
+# Forticlient VPN Docker Image
+
+  
+
+This is a fork of jakubv's foriclient docker image. Support for Microsoft account 2-step authentication has been added, allowing LDAP account to login into Fortigate VPN Client
+
+  
+
+Here's what it do:
+
+>  * Connect and authenticate user into Forigate VPN Server with supplied information and credentials
+
+>  * Map a PC's ip address in the VPN network to user's local network, so that user can perform RDP into targeted PC from any device in user's LAN
+
+  
 
 ## Usage
 
-You can access a predetermined target PC inside the VPN directly from any machine in your LAN using RDP. You just open RDP and set the `IP:PORT` like this `docker-host-name-or-IP:docker-host-mapped-port`, where
- * `docker-host-name-or-IP` - name (or IP) of your docker host,
- * `docker-host-mapped-port` - port on the left side of `-p` parameter (can be seen below).
-The docker image will handle the rest using internally installed **forticlientsslvpn_cli** and via routings
-specified inside as well.
-
-This allows the user to RDP to the docker host with the specified port, which will then be forwarded to the docker container running the vpn, and finally redirected to the remote machine you wish to connect to (set by `VPNRDPIP`).
-
-If running the docker container from the machine you wish to connect from you can omit the -p settings, and connect to the IP address of the container on port 3380.
+Run the following command to setup the VPN Client
 
 ```bash
-# Start the privileged docker container
-
-# -d => detached mode (you can use -it to run it interactively)
-# --name => specify a name of the container
-# --label => labels are not necessary but can help to identify and filter the containers
-# --privileged => this is vital to run VPN containers in a privileged mode (or use caps)
-# -p => # use mapped ports to allow access to anyone in your network (using a port on the left side)
-
-# -e "VPNADDR=vpn-gateway-ip:port" => specify VPN gateway and port (defined by your VPN provider)
-# -e "VPNUSER=[user-id]" => VPN user ID (defined by your VPN provider)
-# -e "VPNPASS=[pwd]" => VPN user password (defined by your VPN provider). You can use DOCKER SWARM secrets to make this more secure.
-# -e "VPNRDPIP=192.168.1.123" => IP of the remote PC (target PC inside the VPN)
-
 docker run \
-  -d \
-  --name vpn-test1 \
-  --label container-type=vpnclient \
-  --label vpn-type=forticlient \
-  --label customer=customer-XYZ \
-  --privileged \
-  -p 51234:3380 \
-  -e "VPNADDR=vpn-gateway-ip:port" \
-  -e "VPNUSER=[user-id]" \
-  -e "VPNPASS=[pwd]" \
-  -e "VPNRDPIP=192.168.1.123" \
-  jakubv/docker-forticlient
+	--name ftcvpn \
+	-it \
+	--privileged \
+	-p 51234:3380 \
+	-e "VPNADDR=<server_address>:<port>" \
+	-e "VPNUSER=<username>" \
+	-e "VPNPASS=<password>" \
+	-e "VPNRDPIP=<remote_pc_ip_address>" \
+dockerforticlient
 ```
+*Parameters*
+* `VPNADDR`: Address and port of the VPN server you wish to connect to, should be in format of `serverAddress:port`
+* `VPNUSER`: Username that you want to use to authenticate into VPN Server
+* `VPNPASS`: Password of the account
+* `VPNRDPIP`: Remote PC's IP address you wish to RDP
+
+After finished setting things up, the container will start connecting you to the VPN Server, if the provided credentials are correct, it will ask you for the Microsoft Verification Code, grab and input the code, then press **++  (plus for 2 times)** to send the code to the container and continue connecting. Once the connecting process is done, you can connect to your targeted PC with the address `127.0.0.1:51234` *(This port can be changed by modifying it in the `docker run` command)*
+After done working, you can terminate the VPN Client by pressing `Ctrl+C`. To restart the VPN Client, use this command 
+> `docker start -i ftcvpn `
+
+*Note that the docker container's name can also be changed by modifying the `docker run` command*
